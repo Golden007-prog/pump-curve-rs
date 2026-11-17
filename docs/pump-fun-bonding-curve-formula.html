@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The pump.fun bonding curve formula, explained (with Rust code) | Blix open source</title>
+<meta name="description" content="pump.fun prices coins on a constant-product curve over virtual reserves. The buy and sell formulas, the exact integer rounding the program uses, the fees, and Rust code that reproduces them to the lamport.">
+<link rel="canonical" href="https://blixvip.github.io/pump-curve-rs/pump-fun-bonding-curve-formula.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="The pump.fun bonding curve formula, explained (with Rust code)">
+<meta property="og:description" content="pump.fun prices coins on a constant-product curve over virtual reserves. The buy and sell formulas, the exact integer rounding the program uses, the fees, and Rust code that reproduces them to the lamport.">
+<meta property="og:url" content="https://blixvip.github.io/pump-curve-rs/pump-fun-bonding-curve-formula.html">
+<meta property="og:image" content="https://raw.githubusercontent.com/blixvip/pump-curve-rs/main/assets/blix-hero.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="https://raw.githubusercontent.com/blixvip/sol-holders/main/assets/blix-icon.png">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "The pump.fun bonding curve formula, explained (with Rust code)", "description": "pump.fun prices coins on a constant-product curve over virtual reserves. The buy and sell formulas, the exact integer rounding the program uses, the fees, and Rust code that reproduces them to the lamport.", "url": "https://blixvip.github.io/pump-curve-rs/pump-fun-bonding-curve-formula.html", "datePublished": "2026-11-17", "dateModified": "2026-11-17", "author": {"@type": "Organization", "name": "Blix", "url": "https://blixvip.com"}, "publisher": {"@type": "Organization", "name": "Blix", "url": "https://blixvip.com"}}</script>
+<style>:root{color-scheme:dark;--bg:#0a0a0b;--panel:#141416;--line:#26262a;--ink:#f3f3f5;--muted:#a0a0a8;--accent:#8fb4ff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+main{max-width:780px;margin:0 auto;padding:32px 16px 64px}
+nav{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;font-size:14px;margin-bottom:36px}nav .brand{font-weight:700;color:var(--ink);margin-right:auto}
+h1{font-size:clamp(28px,5.5vw,40px);line-height:1.15;margin:0 0 12px;letter-spacing:-.02em}h2{font-size:22px;margin:40px 0 12px}h3{font-size:18px;margin:28px 0 8px}
+.lead{font-size:19px;color:var(--muted);margin:0 0 28px}
+pre{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow-x:auto;font:14px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;margin:0 0 16px}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.92em}p code,li code,td code{background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:1px 5px}
+.wrap{overflow-x:auto;margin:0 0 16px}table{border-collapse:collapse;width:100%;font-size:15px}th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}th{background:var(--panel)}
+ul,ol{padding-left:22px}li{margin:6px 0}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:32px 0}.box h2{margin-top:0}
+.btn{display:inline-block;padding:10px 18px;border-radius:999px;border:1px solid var(--line);color:var(--ink);font-weight:600;margin:4px 8px 4px 0}.btn.main{background:var(--ink);color:#000;border-color:var(--ink)}.btn:hover{text-decoration:none;opacity:.9}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}.card{display:block;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;color:var(--ink)}.card:hover{text-decoration:none;border-color:#3a3a40}.card b{display:block;margin-bottom:4px}.card span{color:var(--muted);font-size:14px}
+footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);color:var(--muted);font-size:14px}</style>
+</head>
+<body>
+<main>
+<nav><a class="brand" href="https://blixvip.github.io/">BLIX open source</a><a href="https://blixvip.github.io/pump-curve-rs/">pump-curve-rs</a><a href="https://github.com/blixvip/pump-curve-rs">GitHub</a><a href="https://discord.gg/grokbot">Discord</a><a href="https://blixvip.com">blixvip.com</a></nav>
+<article>
+<h1>The pump.fun bonding curve formula, explained (with Rust code)</h1>
+<p class="lead">Every pump.fun coin starts on a bonding curve: a program-owned account that sells tokens for SOL at a price set by a formula, until the curve sells out and the coin migrates to a pool. The formula is a plain constant product, but getting a quote that matches the chain to the lamport needs the program's exact rounding. Here it is, with Rust you can run.</p>
+
+<h2>The curve is x · y = k over virtual reserves</h2>
+<p>The bonding-curve account stores two <em>virtual</em> reserves: tokens (<code>virtual_token_reserves</code>) and SOL (<code>virtual_sol_reserves</code>). Their product stays constant across a trade, like a Uniswap v2 pool. "Virtual" because a new coin starts with 30 SOL on the SOL side that nobody deposited: it only sets the starting price.</p>
+<div class="wrap"><table><tr><th>Launch value (pump.fun's documented <code>Global</code> settings)</th><th>Amount</th></tr>
+<tr><td>Virtual token reserves</td><td>1,073,000,000 tokens</td></tr>
+<tr><td>Virtual SOL reserves</td><td>30 SOL</td></tr>
+<tr><td>Real tokens for sale on the curve</td><td>793,100,000 tokens</td></tr>
+<tr><td>Total supply</td><td>1,000,000,000 tokens (6 decimals)</td></tr></table></div>
+<p>So <code>k = 1,073,000,000 × 30 = 32,190,000,000</code> in whole units. The spot price is <code>virtual_sol / virtual_tokens</code>, about 0.000000028 SOL per token at launch. Buying removes tokens and adds SOL, so the price rises along the curve. When the 793.1 million real tokens are gone, the curve is <code>complete</code> and the coin migrates.</p>
+<p>The other ~206.9 million tokens never trade on the curve: 279.9 million virtual tokens remain at the end, which is where the end price comes from (see <a href="pump-fun-token-price-market-cap.html">how to calculate price and market cap</a>).</p>
+
+<h2>The three trades</h2>
+<p>With <code>vT</code> and <code>vS</code> the virtual reserves in raw units (tokens × 10<sup>6</sup>, lamports), and all divisions rounded down unless noted:</p>
+<ul>
+<li><strong>Sell <code>t</code> tokens</strong>: <code>sol = floor(t × vS / (vT + t))</code>, then each fee is taken off.</li>
+<li><strong>Buy exactly <code>t</code> tokens</strong> (the <code>buy</code> instruction): <code>sol = floor(t × vS / (vT − t)) + 1</code>, then each fee is added on top. The +1 makes the rounding favour the curve.</li>
+<li><strong>Spend <code>B</code> lamports, fees included</strong>: first the part that reaches the curve, <code>net = floor(B × 10000 / (10000 + fee_bps))</code>, trimmed if net plus its rounded-up fees exceeds B; then <code>tokens = floor((net − 1) × vT / (vS + net − 1))</code>.</li>
+<li><strong>Fees</strong>: protocol and creator fees are each <code>ceil(sol × bps / 10000)</code>, charged separately. Coins without a creator pay no creator fee. The rates are set by pump.fun and change over time: read them from pump.fun's fee config or <a href="https://github.com/pump-fun/pump-public-docs">public docs</a> rather than hard-coding them. 95 + 30 bps below was the published bonding-curve rate in November 2026.</li>
+</ul>
+<p>Sources: the formulas follow pump.fun's <a href="https://github.com/pump-fun/pump-public-docs">published IDL and SDK</a>. The sell and spend-SOL versions were checked against nine real mainnet trade events, fees included; see the <a href="https://github.com/blixvip/pump-curve-rs#how-it-works">README</a>.</p>
+
+<h2>The formula in Rust, by hand</h2>
+<p>Use <code>u128</code> for intermediates: <code>t × vS</code> overflows <code>u64</code> easily.</p>
+<pre><code>/// Each fee is rounded up, separately: `ceil(sol * bps / 10_000)`.
+fn fee(sol: u128, bps: u128) -&gt; u128 {
+    let n = sol * bps;
+    n / 10_000 + u128::from(n % 10_000 != 0)
+}
+
+/// Sell `tokens`: SOL out of the constant product, rounded down, then both fees taken off.
+fn sell(v_tokens: u128, v_sol: u128, tokens: u128, protocol_bps: u128, creator_bps: u128) -&gt; u128 {
+    let sol = tokens * v_sol / (v_tokens + tokens);
+    sol - fee(sol, protocol_bps) - fee(sol, creator_bps)
+}
+
+/// Buy exactly `tokens`: SOL into the constant product, rounded down plus one lamport, then both fees on top.
+fn buy_exact_tokens(v_tokens: u128, v_sol: u128, tokens: u128, protocol_bps: u128, creator_bps: u128) -&gt; u128 {
+    let sol = tokens * v_sol / (v_tokens - tokens) + 1;
+    sol + fee(sol, protocol_bps) + fee(sol, creator_bps)
+}
+
+/// Spend `budget` lamports, fees included: how many tokens come back.
+fn buy_with_sol(v_tokens: u128, v_sol: u128, budget: u128, protocol_bps: u128, creator_bps: u128) -&gt; u128 {
+    let mut net = budget * 10_000 / (10_000 + protocol_bps + creator_bps);
+    let total = net + fee(net, protocol_bps) + fee(net, creator_bps);
+    if total &gt; budget {
+        net -= total - budget; // rounding the fees up can overshoot by a lamport or two
+    }
+    (net - 1) * v_tokens / (v_sol + net - 1)
+}</code></pre>
+
+<h2>Checked against a real curve</h2>
+<p>This <code>main</code> decodes a real bonding-curve account captured from mainnet, runs the hand-written formulas and the crate side by side, and asserts they agree. It is <a href="https://github.com/blixvip/pump-curve-rs/blob/main/examples/bonding_curve_formula.rs"><code>examples/bonding_curve_formula.rs</code></a> in the repository and runs in CI:</p>
+<pre><code>fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // A real SOL-quoted pump.fun curve read from mainnet (tests/fixtures/curve_sol_active.b64).
+    let data = base64(include_str!("../tests/fixtures/curve_sol_active.b64"))?;
+    let curve = BondingCurve::decode(&amp;data)?;
+    let (vt, vs) = (curve.virtual_token_reserves as u128, curve.virtual_sol_reserves as u128);
+    println!("virtual reserves: {vt} token units, {vs} lamports");
+    println!("k = x * y = {}", vt * vs);
+
+    let fees = Fees::new(95, 30); // 0.95% protocol + 0.30% creator
+    let (p, c) = (95, 30);
+
+    let budget = 1_000_000_000; // 1 SOL
+    let by_hand = buy_with_sol(vt, vs, budget, p, c);
+    let by_crate = curve.buy_exact_sol_in(budget as u64, fees)?.tokens_out as u128;
+    println!("buy with 1 SOL:      by hand {by_hand} tokens, crate {by_crate}");
+    assert_eq!(by_hand, by_crate);
+
+    let tokens = 10_000_000_000_000; // 10 million tokens (6 decimals)
+    let by_hand = buy_exact_tokens(vt, vs, tokens, p, c);
+    let by_crate = curve.buy_exact_tokens_out(tokens as u64, fees)?.total_sol as u128;
+    println!("buy 10M tokens:      by hand {by_hand} lamports, crate {by_crate}");
+    assert_eq!(by_hand, by_crate);
+
+    let by_hand = sell(vt, vs, tokens, p, c);
+    let by_crate = curve.sell_exact_tokens_in(tokens as u64, fees)?.sol_out as u128;
+    println!("sell 10M tokens:     by hand {by_hand} lamports, crate {by_crate}");
+    assert_eq!(by_hand, by_crate);
+
+    println!("all three match to the lamport");
+    Ok(())
+}</code></pre>
+<pre><code>cargo run --example bonding_curve_formula</code></pre>
+<pre><code>virtual reserves: 562005185182651 token units, 57277051737 lamports
+k = x * y = 32190000068168967121814787
+buy with 1 SOL:      by hand 9526639470429 tokens, crate 9526639470429
+buy 10M tokens:      by hand 1050588230 lamports, crate 1050588230
+sell 10M tokens:     by hand 988821256 lamports, crate 988821256
+all three match to the lamport</code></pre>
+<p>Note that <code>k</code> is slightly above 30 × 1,073,000,000 × 10<sup>15</sup>: every rounded-down trade leaves a sliver in the curve's favour, so <code>k</code> creeps up over the curve's life. A float version of the formula drifts by a few lamports for the same reason, which is enough to fail a tight slippage check.</p>
+
+<h2>Use the crate instead</h2>
+<p><a href="https://github.com/blixvip/pump-curve-rs">pump-curve-rs</a> does all of this with checked arithmetic, decodes every account layout pump.fun has written, derives the curve address from the mint offline, and adds slippage limits for the <code>buy</code> and <code>sell</code> instructions. No dependencies, <code>no_std</code>, no <code>unsafe</code>.</p>
+<pre><code>cargo add --git https://github.com/blixvip/pump-curve-rs</code></pre>
+<p>Limits to know: mayhem-mode coins use different parameters and are not modelled; curves quoted in a token other than SOL decode but are not priced in SOL; and the crate does not fetch anything, so you bring the account bytes from your own RPC.</p>
+</article>
+<div class="box"><h2>Want it done for you?</h2>
+<p>This crate comes from <a href="https://blixvip.com">Blix</a>, the AI-powered Solana memecoin terminal with 0% fees: every pump.fun launch live with its curve progress, AI coin ratings, narratives, wallet and X tracking, and one-click trading. There is a <a href="https://blixvip.com/api">public API</a> and an <a href="https://blixvip.com/mcp">MCP server</a> too.</p>
+<p><a class="btn main" href="https://blixvip.com">Start trading at blixvip.com</a><a class="btn" href="https://discord.gg/grokbot">Join the Discord</a></p></div>
+<h2>Help build it</h2>
+<p>pump-curve-rs is open source and takes pull requests. There are <a href="https://github.com/blixvip/pump-curve-rs/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22good%20first%20issue%22">good first issues</a> with step-by-step instructions, and setup is <code>git clone</code> and <code>cargo test</code>.</p>
+<h2>More guides</h2>
+<div class="grid"><a class="card" href="pump-fun-token-price-market-cap.html"><b>How to calculate a pump.fun token&#x27;s price and market cap</b><span>pump-curve-rs</span></a><a class="card" href="https://blixvip.github.io/pump-curve/pump-fun-market-cap-without-api.html"><b>How to get a pump.fun token&#x27;s market cap and bonding curve progress without an API</b><span>pump-curve (JavaScript)</span></a><a class="card" href="https://blixvip.github.io/pump-stream/detect-new-pump-fun-tokens-in-real-time.html"><b>How to detect new pump.fun tokens in real time (and stream every trade)</b><span>pump-stream</span></a><a class="card" href="https://blixvip.github.io/sol-holders/solana-token-top-10-holders-percentage.html"><b>How to calculate a Solana token&#x27;s top 10 holders percentage</b><span>sol-holders</span></a></div>
+<footer>Written by the <a href="https://blixvip.com">Blix</a> team. Code is MIT licensed. Not affiliated with pump.fun. <a href="https://github.com/blixvip">github.com/blixvip</a> · <a href="https://discord.gg/grokbot">discord.gg/grokbot</a> · <a href="https://blixvip.github.io/">All tools and guides</a></footer>
+</main>
+</body>
+</html>

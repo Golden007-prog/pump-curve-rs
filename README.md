@@ -10,7 +10,7 @@
 
 <a href="https://blixvip.com"><img src="assets/blix-hero.jpg" width="100%" alt="BLIX: AI-powered Solana memecoin terminal. Trade memes first."></a>
 
-**[Start trading at blixvip.com →](https://blixvip.com)** &nbsp;·&nbsp; [Public API](https://blixvip.com/api) &nbsp;·&nbsp; [MCP server](https://blixvip.com/mcp) &nbsp;·&nbsp; [Discord](https://discord.gg/grokbot)
+**[Start trading at blixvip.com →](https://blixvip.com)** &nbsp;·&nbsp; [Website and guides](https://blixvip.github.io/pump-curve-rs/) &nbsp;·&nbsp; [Public API](https://blixvip.com/api) &nbsp;·&nbsp; [MCP server](https://blixvip.com/mcp) &nbsp;·&nbsp; [Discord](https://discord.gg/grokbot)
 
 Built by the team behind **[Blix](https://blixvip.com)**, the 0% fee Solana memecoin terminal. This is the Rust port of our [pump-curve](https://github.com/blixvip/pump-curve) reader, with the trade math added.
 
@@ -109,6 +109,17 @@ curl -s https://api.mainnet-beta.solana.com -H 'content-type: application/json' 
 cargo run --example quote -- <the base64 string from result.value.data[0]>
 ```
 
+More examples:
+
+| | |
+|---|---|
+| [`live_quote`](examples/live_quote.rs) | Quote a live coin from its mint. The crate has no HTTP dependency, so the example prints the `curl` request, then reads curl's JSON from stdin: `curl ... \| cargo run -q --example live_quote -- <mint> - 0.5`. Checks the owner, and reports completed, mayhem-mode and non-SOL curves instead of quoting them. |
+| [`cross_check`](examples/cross_check.rs) + [`cross_check.mjs`](examples/cross_check.mjs) | Decode the same account bytes with this crate and the JavaScript [pump-curve](https://github.com/blixvip/pump-curve) and compare price, market cap, progress and migration cap: `git clone https://github.com/blixvip/pump-curve ../pump-curve && node examples/cross_check.mjs` |
+| [`bonding_curve_formula`](examples/bonding_curve_formula.rs) | The buy and sell formulas written out by hand, asserted equal to the crate on a real mainnet curve |
+| [`price_market_cap`](examples/price_market_cap.rs) | Price, market cap, progress and migration market cap from a real curve, by hand and with the crate |
+
+Guides on the project site: [The pump.fun bonding curve formula, explained](https://blixvip.github.io/pump-curve-rs/pump-fun-bonding-curve-formula.html) · [How to calculate a pump.fun token's price and market cap](https://blixvip.github.io/pump-curve-rs/pump-fun-token-price-market-cap.html)
+
 ## API
 
 | Item | What it does |
@@ -187,6 +198,10 @@ Not affiliated with pump.fun.
 ## Contributing
 
 Issues and pull requests are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md). Questions, ideas or help: **[discord.gg/grokbot](https://discord.gg/grokbot)**.
+
+## Good first issues
+
+New to the project? These are small, scoped and come with step-by-step instructions: **[good first issues](https://github.com/blixvip/pump-curve-rs/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)**. Bigger pieces (a WASM build for browsers, Python bindings, publishing to crates.io) are under **[help wanted](https://github.com/blixvip/pump-curve-rs/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)**, and the [roadmap issue](https://github.com/blixvip/pump-curve-rs/issues?q=is%3Aissue+is%3Aopen+Roadmap+in%3Atitle) groups everything open. Questions go in [Discussions](https://github.com/blixvip/pump-curve-rs/discussions) or the [Discord](https://discord.gg/grokbot).
 
 ## Related projects
 

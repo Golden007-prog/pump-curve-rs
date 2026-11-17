@@ -16,3 +16,5 @@ jobs:
       - run: cargo test
       - run: cargo test --no-default-features
       - run: cargo doc --no-deps
+      - run: cargo run --example bonding_curve_formula
+      - run: cargo run --example price_market_cap

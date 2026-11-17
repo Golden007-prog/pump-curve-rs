@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to calculate a pump.fun token&#x27;s price and market cap | Blix open source</title>
+<meta name="description" content="A pump.fun token&#x27;s price is virtual SOL over virtual tokens, its market cap is that times one billion. Read them, curve progress and the ~411 SOL migration market cap from the bonding-curve account, in Rust.">
+<link rel="canonical" href="https://blixvip.github.io/pump-curve-rs/pump-fun-token-price-market-cap.html">
+<meta property="og:type" content="article">
+<meta property="og:title" content="How to calculate a pump.fun token&#x27;s price and market cap">
+<meta property="og:description" content="A pump.fun token&#x27;s price is virtual SOL over virtual tokens, its market cap is that times one billion. Read them, curve progress and the ~411 SOL migration market cap from the bonding-curve account, in Rust.">
+<meta property="og:url" content="https://blixvip.github.io/pump-curve-rs/pump-fun-token-price-market-cap.html">
+<meta property="og:image" content="https://raw.githubusercontent.com/blixvip/pump-curve-rs/main/assets/blix-hero.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="https://raw.githubusercontent.com/blixvip/sol-holders/main/assets/blix-icon.png">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "TechArticle", "headline": "How to calculate a pump.fun token's price and market cap", "description": "A pump.fun token's price is virtual SOL over virtual tokens, its market cap is that times one billion. Read them, curve progress and the ~411 SOL migration market cap from the bonding-curve account, in Rust.", "url": "https://blixvip.github.io/pump-curve-rs/pump-fun-token-price-market-cap.html", "datePublished": "2026-11-17", "dateModified": "2026-11-17", "author": {"@type": "Organization", "name": "Blix", "url": "https://blixvip.com"}, "publisher": {"@type": "Organization", "name": "Blix", "url": "https://blixvip.com"}}</script>
+<style>:root{color-scheme:dark;--bg:#0a0a0b;--panel:#141416;--line:#26262a;--ink:#f3f3f5;--muted:#a0a0a8;--accent:#8fb4ff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}
+main{max-width:780px;margin:0 auto;padding:32px 16px 64px}
+nav{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;font-size:14px;margin-bottom:36px}nav .brand{font-weight:700;color:var(--ink);margin-right:auto}
+h1{font-size:clamp(28px,5.5vw,40px);line-height:1.15;margin:0 0 12px;letter-spacing:-.02em}h2{font-size:22px;margin:40px 0 12px}h3{font-size:18px;margin:28px 0 8px}
+.lead{font-size:19px;color:var(--muted);margin:0 0 28px}
+pre{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;overflow-x:auto;font:14px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;margin:0 0 16px}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.92em}p code,li code,td code{background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:1px 5px}
+.wrap{overflow-x:auto;margin:0 0 16px}table{border-collapse:collapse;width:100%;font-size:15px}th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}th{background:var(--panel)}
+ul,ol{padding-left:22px}li{margin:6px 0}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:32px 0}.box h2{margin-top:0}
+.btn{display:inline-block;padding:10px 18px;border-radius:999px;border:1px solid var(--line);color:var(--ink);font-weight:600;margin:4px 8px 4px 0}.btn.main{background:var(--ink);color:#000;border-color:var(--ink)}.btn:hover{text-decoration:none;opacity:.9}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}.card{display:block;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;color:var(--ink)}.card:hover{text-decoration:none;border-color:#3a3a40}.card b{display:block;margin-bottom:4px}.card span{color:var(--muted);font-size:14px}
+footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);color:var(--muted);font-size:14px}</style>
+</head>
+<body>
+<main>
+<nav><a class="brand" href="https://blixvip.github.io/">BLIX open source</a><a href="https://blixvip.github.io/pump-curve-rs/">pump-curve-rs</a><a href="https://github.com/blixvip/pump-curve-rs">GitHub</a><a href="https://discord.gg/grokbot">Discord</a><a href="https://blixvip.com">blixvip.com</a></nav>
+<article>
+<h1>How to calculate a pump.fun token&#x27;s price and market cap</h1>
+<p class="lead">While a pump.fun coin is on its bonding curve, its price is not set by an order book or a pool: it is two numbers in one account. Read that account and you have the price, the market cap, how far along the curve is, and the market cap at which it will migrate, with one RPC call and no API.</p>
+
+<h2>Where the numbers live</h2>
+<p>Each coin has a bonding-curve account at the program-derived address of seeds <code>["bonding-curve", mint]</code> under the pump program <code>6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P</code>. After an 8-byte discriminator it holds, as little-endian <code>u64</code>s: virtual token reserves, virtual SOL reserves, real token reserves, real SOL reserves and total supply, then a <code>complete</code> flag. Fetch it with <code>getAccountInfo</code> (base64 encoding); the free public RPC serves this.</p>
+
+<h2>The formulas</h2>
+<div class="wrap"><table><tr><th>Figure</th><th>Formula</th></tr>
+<tr><td>Price (SOL per token)</td><td><code>(virtual_sol / 10^9) / (virtual_tokens / 10^6)</code></td></tr>
+<tr><td>Market cap (SOL)</td><td><code>price × total_supply / 10^6</code> (one billion tokens on a standard coin)</td></tr>
+<tr><td>Market cap, exact (lamports)</td><td><code>floor(virtual_sol × supply / virtual_tokens)</code>, how pump.fun's fee program sizes fee tiers</td></tr>
+<tr><td>Progress</td><td><code>sold / (sold + real_tokens)</code> with <code>sold = 1,073,000,000 − virtual_tokens</code> (whole tokens)</td></tr>
+<tr><td>Migration market cap</td><td><code>k / end_tokens² × supply</code> with <code>k = virtual_sol × virtual_tokens</code> and <code>end_tokens = virtual_tokens − real_tokens</code></td></tr></table></div>
+<p>Use the virtual reserves, not the real ones: the real SOL reserve is what the curve actually holds, but the price comes from the constant product over the virtual pair. The price and market cap only make sense while the curve is active and quoted in SOL. A completed curve has migrated, and its price is on the pool now; a curve quoted in another token has its reserves in that token's units.</p>
+<p>For a standard curve the migration market cap works out to the same value from start to finish: 279.9 million virtual tokens remain at the end, so <code>32,190,000,000 / 279,900,000² × 10^9 ≈ 410.88 SOL</code>. In dollars that moves with SOL's price, which is why a "pump.fun graduation market cap" quoted in USD keeps changing.</p>
+
+<h2>In Rust</h2>
+<p><a href="https://github.com/blixvip/pump-curve-rs/blob/main/examples/price_market_cap.rs"><code>examples/price_market_cap.rs</code></a> decodes a real bonding-curve account captured from mainnet, computes the figures by hand, and checks them against the crate:</p>
+<pre><code>fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+    // A real SOL-quoted pump.fun curve read from mainnet (tests/fixtures/curve_sol_active.b64).
+    let data = base64(include_str!("../tests/fixtures/curve_sol_active.b64"))?;
+    let curve = BondingCurve::decode(&amp;data)?;
+
+    // By hand: price = virtual SOL / virtual tokens, both in whole units.
+    let sol = curve.virtual_sol_reserves as f64 / LAMPORTS_PER_SOL as f64;
+    let tokens = curve.virtual_token_reserves as f64 / TOKEN_UNIT as f64;
+    let price = sol / tokens;
+    // Market cap = price x total supply (one billion tokens on a standard coin).
+    let supply = curve.token_total_supply as f64 / TOKEN_UNIT as f64;
+    let market_cap = price * supply;
+    println!("by hand:  price {price:.12} SOL, market cap {market_cap:.4} SOL");
+
+    // The crate gives the same figures, and returns None when they do not apply (migrated, or not priced in SOL).
+    let price_c = curve.price_sol().ok_or("not priced in SOL")?;
+    let cap_c = curve.market_cap_sol().ok_or("not priced in SOL")?;
+    println!("crate:    price {price_c:.12} SOL, market cap {cap_c:.4} SOL");
+    assert_eq!(price, price_c);
+    assert_eq!(market_cap, cap_c);
+
+    // Exact integer market cap in lamports, the way pump.fun's fee program computes it for fee tiers.
+    let cap_lamports = curve.market_cap_lamports(TOKEN_TOTAL_SUPPLY)?;
+    println!("exact:    market cap {cap_lamports} lamports");
+
+    // How far along the curve is, and the market cap at which it completes and migrates.
+    let progress = curve.progress_pct().ok_or("no progress for this curve")?;
+    let migrates_at = curve.migration_market_cap_sol().ok_or("no migration cap")?;
+    println!("progress: {progress:.2}% of the curve sold, migrates at {migrates_at:.2} SOL market cap");
+
+    // In dollars: multiply by SOL's price from any source you trust. 140.0 is a placeholder, not a quote.
+    let sol_usd = 140.0;
+    println!("at ${sol_usd} per SOL: market cap ${:.0}", cap_c * sol_usd);
+
+    // A brand-new coin, for comparison.
+    let fresh = BondingCurve::fresh(pump_curve::Pubkey::default());
+    println!(
+        "new coin: price {:.12} SOL, market cap {:.2} SOL, migrates at {:.2} SOL",
+        fresh.price_sol().unwrap_or_default(),
+        fresh.market_cap_sol().unwrap_or_default(),
+        fresh.migration_market_cap_sol().unwrap_or_default(),
+    );
+    Ok(())
+}</code></pre>
+<pre><code>cargo run --example price_market_cap</code></pre>
+<pre><code>by hand:  price 0.000000101916 SOL, market cap 101.9155 SOL
+crate:    price 0.000000101916 SOL, market cap 101.9155 SOL
+exact:    market cap 101915521861 lamports
+progress: 64.43% of the curve sold, migrates at 410.88 SOL market cap
+at $140 per SOL: market cap $14268
+new coin: price 0.000000027959 SOL, market cap 27.96 SOL, migrates at 410.88 SOL</code></pre>
+<p>Floats are fine for display. For anything that moves money, use the integer quote methods (<code>buy_exact_sol_in</code>, <code>sell_exact_tokens_in</code>); see <a href="pump-fun-bonding-curve-formula.html">the bonding curve formula</a>.</p>
+
+<h2>A live coin, from its mint</h2>
+<p>Solana RPC is HTTPS, which Rust's standard library cannot speak on its own, and the crate stays dependency-free. <a href="https://github.com/blixvip/pump-curve-rs/blob/main/examples/live_quote.rs"><code>examples/live_quote.rs</code></a> splits the job: it derives the curve address from the mint offline and prints the request, curl fetches it, and the example reads the JSON from stdin, checks the owner is the pump program, and prints the figures and a quote.</p>
+<pre><code>$ cargo run -q --example live_quote -- 5RhfKrSQm6p7cbqLgBbpNYvxpz8rXXnofPotjfKqpump
+curve account: 4Q4BXxsXDwwcVzFY3AzbB71qZJ3c41Rcq5c2SbTmgH4T
+run:
+
+curl -s https://api.mainnet-beta.solana.com -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":1,"method":"getAccountInfo","params":["4Q4BXxsXDwwcVzFY3AzbB71qZJ3c41Rcq5c2SbTmgH4T",{"encoding":"base64"}]}' | cargo run -q --example live_quote -- 5RhfKrSQm6p7cbqLgBbpNYvxpz8rXXnofPotjfKqpump -</code></pre>
+<p>Run that curl with <code>0.5</code> added after the final <code>-</code> (the SOL to quote; the default is 0.1) and you get, for that coin on 2026-11-17:</p>
+<pre><code>5RhfKrSQm6p7cbqLgBbpNYvxpz8rXXnofPotjfKqpump
+price 0.0000000296 SOL · market cap 29.56 SOL · 3.71% of the curve sold · migrates at 410.88 SOL
+buy 0.5 SOL -&gt; 16442051.32 tokens (fees 4691359 + 1481482 lamports); max_sol_cost at 1%: 504999999
+sell them back -&gt; 487654317 lamports; min_sol_output at 1%: 482777773</code></pre>
+<p>Mayhem-mode coins, completed curves and curves quoted in another token are detected and reported instead of quoted. In a real program, fetch the bytes with the HTTP client you already use and call <code>BondingCurve::decode</code>.</p>
+
+<h2>Same answer as the JavaScript version</h2>
+<p>If you also run the JavaScript <a href="https://github.com/blixvip/pump-curve">pump-curve</a> package, <a href="https://github.com/blixvip/pump-curve-rs/blob/main/examples/cross_check.mjs"><code>examples/cross_check.mjs</code></a> decodes the same account bytes in both and compares price, market cap, progress and migration cap. On five curves (three from mainnet, two synthetic) they agree to within 10<sup>-9</sup> relative.</p>
+</article>
+<div class="box"><h2>Want it done for you?</h2>
+<p>This crate comes from <a href="https://blixvip.com">Blix</a>, the AI-powered Solana memecoin terminal with 0% fees: every pump.fun launch live with its curve progress, AI coin ratings, narratives, wallet and X tracking, and one-click trading. There is a <a href="https://blixvip.com/api">public API</a> and an <a href="https://blixvip.com/mcp">MCP server</a> too.</p>
+<p><a class="btn main" href="https://blixvip.com">Start trading at blixvip.com</a><a class="btn" href="https://discord.gg/grokbot">Join the Discord</a></p></div>
+<h2>Help build it</h2>
+<p>pump-curve-rs is open source and takes pull requests. There are <a href="https://github.com/blixvip/pump-curve-rs/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22good%20first%20issue%22">good first issues</a> with step-by-step instructions, and setup is <code>git clone</code> and <code>cargo test</code>.</p>
+<h2>More guides</h2>
+<div class="grid"><a class="card" href="pump-fun-bonding-curve-formula.html"><b>The pump.fun bonding curve formula, explained (with Rust code)</b><span>pump-curve-rs</span></a><a class="card" href="https://blixvip.github.io/pump-curve/pump-fun-market-cap-without-api.html"><b>How to get a pump.fun token&#x27;s market cap and bonding curve progress without an API</b><span>pump-curve (JavaScript)</span></a><a class="card" href="https://blixvip.github.io/pump-stream/detect-new-pump-fun-tokens-in-real-time.html"><b>How to detect new pump.fun tokens in real time (and stream every trade)</b><span>pump-stream</span></a><a class="card" href="https://blixvip.github.io/sol-holders/solana-token-top-10-holders-percentage.html"><b>How to calculate a Solana token&#x27;s top 10 holders percentage</b><span>sol-holders</span></a></div>
+<footer>Written by the <a href="https://blixvip.com">Blix</a> team. Code is MIT licensed. Not affiliated with pump.fun. <a href="https://github.com/blixvip">github.com/blixvip</a> · <a href="https://discord.gg/grokbot">discord.gg/grokbot</a> · <a href="https://blixvip.github.io/">All tools and guides</a></footer>
+</main>
+</body>
+</html>
