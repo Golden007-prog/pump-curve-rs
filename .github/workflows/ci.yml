@@ -16,3 +16,15 @@ jobs:
       - run: cargo test
       - run: cargo test --no-default-features
       - run: cargo doc --no-deps
+  msrv:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust 1.70 and the embedded target
+        run: |
+          rustup toolchain install 1.70.0 --profile minimal
+          rustup target add --toolchain 1.70.0 thumbv7em-none-eabi
+      - name: Build on the minimum supported Rust version
+        run: cargo +1.70.0 build --all-targets
+      - name: Build the no_std library for thumbv7em-none-eabi
+        run: cargo +1.70.0 build --lib --no-default-features --target thumbv7em-none-eabi

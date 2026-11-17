@@ -180,7 +180,7 @@ These were checked against nine real mainnet `TradeEvent`s (four buys through `b
 - **Progress** assumes a standard curve (1,073,000,000 starting virtual tokens).
 - `is_on_curve` follows `curve25519-dalek` (which Solana uses): a y coordinate at or above 2^255 − 19 is reduced rather than rejected. The difference matters for 19 of 2^255 values.
 - The crate does not fetch anything or build transactions. It also does not check the account owner; confirm it is the pump program before decoding.
-- MSRV 1.70 is declared from the language features used; CI against that exact toolchain is not set up yet.
+- CI checks Rust 1.70 and builds the `no_std` library for `thumbv7em-none-eabi`.
 
 Not affiliated with pump.fun.
 
