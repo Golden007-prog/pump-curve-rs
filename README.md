@@ -1,17 +1,20 @@
 # pump-curve-rs
 
-**Decode pump.fun bonding curves and quote buys and sells in Rust, with exact integer math.** Reads the account bytes, derives the curve address from the mint, and gives you the tokens, SOL, fees and slippage limits a trade would have, rounded the way the program rounds. Zero dependencies, `no_std`, no `unsafe`.
+**pump.fun bonding curve math in Rust: decode curves and quote buys and sells with exact integer math.** Reads the account bytes, derives the curve address from the mint, and gives you the tokens, SOL, fees and slippage limits a trade would have, rounded the way the program rounds. Zero dependencies, `no_std`, no `unsafe`.
 
 ![dependencies: 0](https://img.shields.io/badge/dependencies-0-brightgreen)
 ![rust: 1.70+](https://img.shields.io/badge/rust-1.70%2B-orange)
 [![license: MIT](https://img.shields.io/badge/license-MIT-black)](LICENSE)
 [![Discord](https://img.shields.io/badge/Discord-join-5865F2?logo=discord&logoColor=white)](https://discord.gg/grokbot)
+[![GitHub stars](https://img.shields.io/github/stars/blixvip/pump-curve-rs?style=social)](https://github.com/blixvip/pump-curve-rs/stargazers)
 
 <a href="https://blixvip.com"><img src="assets/blix-hero.jpg" width="100%" alt="BLIX: AI-powered Solana memecoin terminal. Trade memes first."></a>
 
 **[Start trading at blixvip.com →](https://blixvip.com)** &nbsp;·&nbsp; [Public API](https://blixvip.com/api) &nbsp;·&nbsp; [MCP server](https://blixvip.com/mcp) &nbsp;·&nbsp; [Discord](https://discord.gg/grokbot)
 
 Built by the team behind **[Blix](https://blixvip.com)**, the 0% fee Solana memecoin terminal. This is the Rust port of our [pump-curve](https://github.com/blixvip/pump-curve) reader, with the trade math added.
+
+If pump-curve-rs saves you time, **[give it a ⭐](https://github.com/blixvip/pump-curve-rs)**. It helps other Solana developers find it.
 
 ## The problem
 
@@ -193,6 +196,12 @@ Issues and pull requests are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md). Qu
 | [sol-holders](https://github.com/blixvip/sol-holders) | Top holders of any Solana token, with pools and curves left out |
 
 **[Blix](https://blixvip.com)** is a Solana memecoin terminal with 0% fees on every trade: every pump.fun launch live, AI coin ratings, narratives, wallet and X tracking, and one-click trading. Its [public API](https://blixvip.com/api) and [MCP server](https://blixvip.com/mcp) are BLIX-provided services; this crate does not use or need them.
+
+## Contributors
+
+Every merged pull request is credited in the release notes. Pick a [good first issue](https://github.com/blixvip/pump-curve-rs/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) or say hi in the [Discord](https://discord.gg/grokbot).
+
+<a href="https://github.com/blixvip/pump-curve-rs/graphs/contributors"><img src="https://contrib.rocks/image?repo=blixvip/pump-curve-rs" alt="Contributors to pump-curve-rs"></a>
 
 ## License
 
