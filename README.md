@@ -201,7 +201,7 @@ Issues and pull requests are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md). Qu
 
 ## Good first issues
 
-New to the project? These are small, scoped and come with step-by-step instructions: **[good first issues](https://github.com/blixvip/pump-curve-rs/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)**. Bigger pieces (a WASM build for browsers, Python bindings, publishing to crates.io) are under **[help wanted](https://github.com/blixvip/pump-curve-rs/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)**, and the [roadmap issue](https://github.com/blixvip/pump-curve-rs/issues?q=is%3Aissue+is%3Aopen+Roadmap+in%3Atitle) groups everything open. Questions go in [Discussions](https://github.com/blixvip/pump-curve-rs/discussions) or the [Discord](https://discord.gg/grokbot).
+New to the project? These are small, scoped and come with step-by-step instructions: **[good first issues](https://github.com/blixvip/pump-curve-rs/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)**. Bigger pieces (a WASM build for browsers, Python bindings, publishing to crates.io) are under **[help wanted](https://github.com/blixvip/pump-curve-rs/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)**, and the [roadmap issue](https://github.com/blixvip/pump-curve-rs/issues/15) groups everything open. Questions go in [Discussions](https://github.com/blixvip/pump-curve-rs/discussions) or the [Discord](https://discord.gg/grokbot).
 
 ## Related projects
 
