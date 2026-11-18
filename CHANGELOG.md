@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- `examples/live_quote.rs`: quote a live coin from its mint, with curl doing the HTTPS and the example reading the JSON from stdin.
+- `examples/cross_check.rs` and `examples/cross_check.mjs`: compare this crate with the JavaScript pump-curve on the same account bytes.
+- `examples/bonding_curve_formula.rs` and `examples/price_market_cap.rs`: the code from the project site's guides, run in CI.
+- Project site with two guides: https://blixvip.github.io/pump-curve-rs/
+
 ## [1.0.0] - 2026-11-17
 
 ### Added

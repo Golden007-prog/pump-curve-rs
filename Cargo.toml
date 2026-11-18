@@ -24,3 +24,19 @@ std = []
 [[example]]
 name = "quote"
 required-features = ["std"]
+
+[[example]]
+name = "bonding_curve_formula"
+required-features = ["std"]
+
+[[example]]
+name = "price_market_cap"
+required-features = ["std"]
+
+[[example]]
+name = "live_quote"
+required-features = ["std"]
+
+[[example]]
+name = "cross_check"
+required-features = ["std"]
