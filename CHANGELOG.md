@@ -6,6 +6,7 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Added
 
+- `BuyQuote` and `SellQuote` implement `Display` with exact six-decimal token and nine-decimal SOL amounts.
 - `examples/live_quote.rs`: quote a live coin from its mint, with curl doing the HTTPS and the example reading the JSON from stdin.
 - `examples/cross_check.rs` and `examples/cross_check.mjs`: compare this crate with the JavaScript pump-curve on the same account bytes.
 - `examples/bonding_curve_formula.rs` and `examples/price_market_cap.rs`: the code from the project site's guides, run in CI.

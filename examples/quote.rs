@@ -11,9 +11,7 @@
 //! cargo run --example quote -- <base64 account data>
 //! ```
 
-use pump_curve::{
-    bonding_curve_address, max_sol_cost, min_sol_output, BondingCurve, Fees, Pubkey, LAMPORTS_PER_SOL, TOKEN_UNIT,
-};
+use pump_curve::{bonding_curve_address, max_sol_cost, min_sol_output, BondingCurve, Fees, Pubkey, LAMPORTS_PER_SOL};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Any mint's curve account can be derived offline. This is the mint from the JS pump-curve README.
@@ -49,14 +47,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let spend = LAMPORTS_PER_SOL / 2;
     let buy = curve.buy_exact_sol_in(spend, fees)?;
-    println!(
-        "\nbuy with {:.3} SOL: {:.2} tokens · {} lamports to the curve + {} protocol + {} creator fee",
-        spend as f64 / LAMPORTS_PER_SOL as f64,
-        buy.tokens_out as f64 / TOKEN_UNIT as f64,
-        buy.sol_to_curve,
-        buy.protocol_fee,
-        buy.creator_fee,
-    );
+    if curve.is_sol_quoted() {
+        println!("\nbuy: {buy}");
+    } else {
+        println!("\nbuy: {buy:?}");
+    }
     let exact = curve.buy_exact_tokens_out(buy.tokens_out, fees)?;
     println!(
         "same tokens via `buy`: total {} lamports, max_sol_cost at 1% slippage {}",
@@ -67,11 +62,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut after = curve;
     after.apply_buy(&buy)?;
     let sell = after.sell_exact_tokens_in(buy.tokens_out, fees)?;
-    println!(
-        "sell them straight back: {} lamports out, min_sol_output at 1% slippage {}",
-        sell.sol_out,
-        min_sol_output(sell.sol_out, 100)?
-    );
+    if curve.is_sol_quoted() {
+        println!("sell them straight back: {sell}");
+    } else {
+        println!("sell them straight back: {sell:?}");
+    }
+    println!("min_sol_output at 1% slippage: {}", min_sol_output(sell.sol_out, 100)?);
     println!("round trip cost: {} lamports", buy.total_sol - sell.sol_out);
     Ok(())
 }

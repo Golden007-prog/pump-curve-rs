@@ -26,6 +26,8 @@ Full reference with examples: run `cargo doc --open`. Every public item has rust
 | `apply_buy(&BuyQuote)`, `apply_sell(&SellQuote)` | Move the reserves as the trade would. |
 | `max_sol_cost`, `min_sol_output`, `min_tokens_out` | Slippage limits for instruction arguments. |
 
+`BuyQuote` and `SellQuote` implement `Display` for SOL-quoted curves. Their summaries print token amounts to six decimal places, SOL amounts to nine, and show the curve amount and both fees separately.
+
 ## Keys
 
 `Pubkey` (32 bytes) with `from_base58`, `is_on_curve`, `create_program_address`, `find_program_address`. Constants: `PUMP_PROGRAM_ID`, `WSOL_MINT`, `BONDING_CURVE_DISCRIMINATOR`, `LAMPORTS_PER_SOL`, `TOKEN_DECIMALS`, `TOKEN_UNIT`, the initial reserve constants, `TOKEN_TOTAL_SUPPLY`, `MAX_SEEDS`, `MAX_SEED_LEN`, `BPS_DENOMINATOR`.

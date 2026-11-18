@@ -142,6 +142,8 @@ Guides on the project site: [The pump.fun bonding curve formula, explained](http
 
 Full reference with examples: `cargo doc --open`.
 
+Use `Display` on `BuyQuote` and `SellQuote` for a one-line SOL-denominated summary with exact token and fee amounts.
+
 ## Configuration
 
 Nothing to configure. The crate makes no network calls; bring your own RPC client and pass in the account bytes. The free public endpoint `https://api.mainnet-beta.solana.com` serves `getAccountInfo` and `getMultipleAccounts` for this (rate limited); the free plans of Helius, QuickNode and others work too.

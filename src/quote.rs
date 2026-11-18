@@ -1,6 +1,8 @@
 //! Trade quotes against a bonding curve, fees, and slippage limits. All integer, all checked.
 
-use crate::{BondingCurve, Error};
+use core::fmt;
+
+use crate::{BondingCurve, Error, LAMPORTS_PER_SOL, TOKEN_DECIMALS, TOKEN_UNIT};
 
 /// Basis points in 100%.
 pub const BPS_DENOMINATOR: u64 = 10_000;
@@ -81,6 +83,20 @@ pub fn select_fee_tier(tiers: &[FeeTier], market_cap_lamports: u128) -> Option<F
 }
 
 /// A buy: what goes in, what comes out.
+///
+/// The display format uses six decimal places for tokens and nine for SOL.
+///
+/// ```
+/// use pump_curve::{BondingCurve, Fees, Pubkey};
+///
+/// let curve = BondingCurve::fresh(Pubkey::new([1; 32]));
+/// let buy = curve.buy_exact_sol_in(500_000_000, Fees::new(95, 30))?;
+/// assert_eq!(
+///     buy.to_string(),
+///     "17376518.132293 tokens for 0.500000000 SOL (curve 0.493827159 + fees 0.004691359 + 0.001481482)"
+/// );
+/// # Ok::<(), pump_curve::Error>(())
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
 pub struct BuyQuote {
     /// Tokens received, raw units.
@@ -97,6 +113,23 @@ pub struct BuyQuote {
 }
 
 /// A sell: what goes in, what comes out.
+///
+/// The display format shows the SOL proceeds after the two fees.
+///
+/// ```
+/// use pump_curve::{BondingCurve, Fees, Pubkey};
+///
+/// let mut curve = BondingCurve::fresh(Pubkey::new([1; 32]));
+/// let fees = Fees::new(95, 30);
+/// let buy = curve.buy_exact_sol_in(500_000_000, fees)?;
+/// curve.apply_buy(&buy)?;
+/// let sell = curve.sell_exact_tokens_in(buy.tokens_out, fees)?;
+/// assert_eq!(
+///     sell.to_string(),
+///     "17376518.132293 tokens for 0.487654317 SOL (curve 0.493827158 - fees 0.004691359 - 0.001481482)"
+/// );
+/// # Ok::<(), pump_curve::Error>(())
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Hash)]
 pub struct SellQuote {
     /// Tokens sold, raw units.
@@ -109,6 +142,56 @@ pub struct SellQuote {
     pub creator_fee: u64,
     /// What the seller receives: `sol_from_curve - protocol_fee - creator_fee`.
     pub sol_out: u64,
+}
+
+impl fmt::Display for BuyQuote {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{} tokens for {} SOL (curve {} + fees {} + {})",
+            DecimalAmount::tokens(self.tokens_out),
+            DecimalAmount::sol(self.total_sol),
+            DecimalAmount::sol(self.sol_to_curve),
+            DecimalAmount::sol(self.protocol_fee),
+            DecimalAmount::sol(self.creator_fee),
+        )
+    }
+}
+
+impl fmt::Display for SellQuote {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{} tokens for {} SOL (curve {} - fees {} - {})",
+            DecimalAmount::tokens(self.tokens_in),
+            DecimalAmount::sol(self.sol_out),
+            DecimalAmount::sol(self.sol_from_curve),
+            DecimalAmount::sol(self.protocol_fee),
+            DecimalAmount::sol(self.creator_fee),
+        )
+    }
+}
+
+struct DecimalAmount {
+    raw: u64,
+    unit: u64,
+    decimals: usize,
+}
+
+impl DecimalAmount {
+    fn tokens(raw: u64) -> Self {
+        Self { raw, unit: TOKEN_UNIT, decimals: TOKEN_DECIMALS.into() }
+    }
+
+    fn sol(raw: u64) -> Self {
+        Self { raw, unit: LAMPORTS_PER_SOL, decimals: 9 }
+    }
+}
+
+impl fmt::Display for DecimalAmount {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}.{:0width$}", self.raw / self.unit, self.raw % self.unit, width = self.decimals)
+    }
 }
 
 fn to_u64(v: u128) -> Result<u64, Error> {
