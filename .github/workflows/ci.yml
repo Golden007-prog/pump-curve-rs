@@ -18,3 +18,15 @@ jobs:
       - run: cargo doc --no-deps
       - run: cargo run --example bonding_curve_formula
       - run: cargo run --example price_market_cap
+  msrv:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust 1.70 and the embedded target
+        run: |
+          rustup toolchain install 1.70.0 --profile minimal
+          rustup target add --toolchain 1.70.0 thumbv7em-none-eabi
+      - name: Build on the minimum supported Rust version
+        run: cargo +1.70.0 build --all-targets
+      - name: Build the no_std library for thumbv7em-none-eabi
+        run: cargo +1.70.0 build --lib --no-default-features --target thumbv7em-none-eabi
