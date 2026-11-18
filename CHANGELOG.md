@@ -9,6 +9,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - `examples/live_quote.rs`: quote a live coin from its mint, with curl doing the HTTPS and the example reading the JSON from stdin.
 - `examples/cross_check.rs` and `examples/cross_check.mjs`: compare this crate with the JavaScript pump-curve on the same account bytes.
 - `examples/bonding_curve_formula.rs` and `examples/price_market_cap.rs`: the code from the project site's guides, run in CI.
+- CI builds on the minimum supported Rust version (1.70) and the no_std library for `thumbv7em-none-eabi`. Thanks [@Golden007-prog](https://github.com/Golden007-prog) (#6).
 - Project site with two guides: https://blixvip.github.io/pump-curve-rs/
 
 ## [1.0.0] - 2026-11-17
